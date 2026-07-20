@@ -9,8 +9,9 @@
 # unlike the scarce Intel macos-13 pool). The Linux musl targets build via
 # `cross` on an x86_64 runner — that is cross's designed use case and it
 # handles aarch64-musl in its container; it does NOT run on an arm64 runner.
-# upload-rust-binary-action creates the release on first upload, so there is no
-# separate create-release job.
+# NOTE: upload-rust-binary-action only uploads into an EXISTING release (it
+# polls "release not found" until it gives up) — the create-release job below
+# is required.
 name: Release
 
 on:
@@ -27,7 +28,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   upload-assets:
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
