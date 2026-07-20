@@ -1,7 +1,7 @@
 id = "pubspec-lsp"
 name = "Pubspec LSP"
 description = "Language-server support for Flutter/Dart pubspec.yaml: pub.dev-backed completions, outdated/discontinued diagnostics, code actions and hover."
-version = "0.1.0"
+version = "0.1.1"
 schema_version = 1
 authors = ["František Gažo <frantisek.gazo.313@gmail.com>"]
 repository = "https://github.com/FrantisekGazo/pubspec-lsp"

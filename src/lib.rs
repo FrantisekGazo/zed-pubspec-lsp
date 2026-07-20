@@ -3,6 +3,13 @@ use zed_extension_api::{self as zed, Result};
 
 const SERVER_BINARY: &str = "pubspec-language-server";
 const GITHUB_REPO: &str = "FrantisekGazo/pubspec-lsp";
+/// The server version this extension pairs with: its own version. Extension
+/// and server live in one repo and are released together under one tag, so
+/// there is nothing to "check" — the wanted tag is known at compile time and
+/// the asset URL is constructed directly. No GitHub API call (the API is
+/// rate-limited to 60/h per IP unauthenticated; direct release downloads are
+/// not rate-limited).
+const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 struct PubspecExtension {
     cached_binary_path: Option<String>,
@@ -25,18 +32,6 @@ impl PubspecExtension {
             }
         }
 
-        zed::set_language_server_installation_status(
-            language_server_id,
-            &zed::LanguageServerInstallationStatus::CheckingForUpdate,
-        );
-        let release = zed::latest_github_release(
-            GITHUB_REPO,
-            zed::GithubReleaseOptions {
-                require_assets: true,
-                pre_release: false,
-            },
-        )?;
-
         let (platform, arch) = zed::current_platform();
         let target = match (platform, arch) {
             (zed::Os::Mac, zed::Architecture::Aarch64) => "aarch64-apple-darwin",
@@ -53,13 +48,8 @@ impl PubspecExtension {
                 _ => "tar.gz",
             }
         );
-        let asset = release
-            .assets
-            .iter()
-            .find(|asset| asset.name == asset_name)
-            .ok_or_else(|| format!("release {} has no asset {asset_name}", release.version))?;
 
-        let version_dir = format!("{SERVER_BINARY}-{}", release.version);
+        let version_dir = format!("{SERVER_BINARY}-v{SERVER_VERSION}");
         let binary_path = format!(
             "{version_dir}/{SERVER_BINARY}{exe}",
             exe = match platform {
@@ -73,15 +63,18 @@ impl PubspecExtension {
                 language_server_id,
                 &zed::LanguageServerInstallationStatus::Downloading,
             );
+            let download_url = format!(
+                "https://github.com/{GITHUB_REPO}/releases/download/v{SERVER_VERSION}/{asset_name}"
+            );
             zed::download_file(
-                &asset.download_url,
+                &download_url,
                 &version_dir,
                 match platform {
                     zed::Os::Windows => zed::DownloadedFileType::Zip,
                     _ => zed::DownloadedFileType::GzipTar,
                 },
             )
-            .map_err(|err| format!("failed to download {asset_name}: {err}"))?;
+            .map_err(|err| format!("failed to download {download_url}: {err}"))?;
             zed::make_file_executable(&binary_path)?;
 
             // Drop stale version directories.
