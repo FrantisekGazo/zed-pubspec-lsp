@@ -53,7 +53,22 @@ The server logs to stderr (visible via Zed's `debug: open language server logs`)
 
 ## Releasing
 
-Tag `v*` → GitHub Actions builds the server for macOS (arm64/x64), Linux (musl x64/arm64) and Windows, and attaches archives named `pubspec-language-server-<target>.tar.gz` (`.zip` on Windows) — the names the extension's download code expects.
+**1. Publish.** Bump the same version in `Cargo.toml`, `extension.toml`, and
+`server/Cargo.toml` (they must match — the server download URL is built from the
+extension version), then tag and push:
+
+```sh
+git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin master vX.Y.Z
+```
+
+The tag triggers `release.yml`, which attaches the per-platform server archives.
+Wait for all 5 assets on the release.
+
+**2. Update the registry.** In a fork of `zed-industries/extensions`, point the
+`extensions/pubspec-lsp` submodule at the new tag and bump the `version` under
+`[pubspec-lsp]` in `extensions.toml` (keep it alphabetically sorted), then open a
+PR. No auto-bump bot applies here — `zed-zippy` only runs for repos in the
+`zed-industries`/`zed-extensions` orgs. First PR: zed-industries/extensions#6896.
 
 ## Notes
 
