@@ -2,7 +2,7 @@ use zed_extension_api::settings::LspSettings;
 use zed_extension_api::{self as zed, Result};
 
 const SERVER_BINARY: &str = "pubspec-language-server";
-const GITHUB_REPO: &str = "FrantisekGazo/pubspec-lsp";
+const GITHUB_REPO: &str = "FrantisekGazo/zed-pubspec-lsp";
 /// The server version this extension pairs with: its own version. Extension
 /// and server live in one repo and are released together under one tag, so
 /// there is nothing to "check" — the wanted tag is known at compile time and

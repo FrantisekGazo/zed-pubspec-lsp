@@ -9,7 +9,7 @@ pub const PUB_DEV_URL: &str = "https://pub.dev";
 const USER_AGENT: &str = concat!(
     "pubspec-lsp/",
     env!("CARGO_PKG_VERSION"),
-    " (+https://github.com/FrantisekGazo/pubspec-lsp)"
+    " (+https://github.com/FrantisekGazo/zed-pubspec-lsp)"
 );
 
 #[derive(Debug, Clone)]
