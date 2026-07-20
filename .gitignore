@@ -1,0 +1,6 @@
+# Rust
+/target/
+
+# Zed dev-extension build artifacts (created in-place by `install dev extension`)
+/grammars/
+*.wasm

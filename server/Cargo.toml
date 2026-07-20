@@ -1,0 +1,23 @@
+[package]
+name = "pubspec-language-server"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "Apache-2.0"
+
+[dependencies]
+tower-lsp-server = "0.23"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "sync", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+moka = { version = "0.12.15", features = ["future"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+semver = "1.0.28"
+futures = "0.3.33"
+marked-yaml = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "gzip"] }
+dirs = "6.0.0"
+
+[dev-dependencies]
+wiremock = "0.6.5"
