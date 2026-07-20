@@ -1,8 +1,13 @@
 # Builds the language-server binary for every supported platform and attaches
-# the archives to a GitHub release. The archive names form a contract with the
-# extension's download code in src/lib.rs:
+# the archives to the GitHub release for the pushed tag. The archive names form
+# a contract with the extension's download code in src/lib.rs:
 #   pubspec-language-server-<target>.tar.gz  (unix)
 #   pubspec-language-server-<target>.zip     (windows)
+#
+# Every target is built on a NATIVE runner (matching arch) so nothing is
+# cross-compiled — reqwest's rustls/aws-lc-rs build scripts fail when
+# cross-compiling to a different architecture. upload-rust-binary-action
+# creates the release on first upload, so no separate create-release job.
 name: Release
 
 on:
@@ -14,27 +19,19 @@ permissions:
   contents: write
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: taiki-e/create-gh-release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   upload-assets:
-    needs: create-release
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: aarch64-apple-darwin
             os: macos-14
           - target: x86_64-apple-darwin
-            os: macos-14
+            os: macos-13
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
           - target: aarch64-unknown-linux-musl
-            os: ubuntu-latest
+            os: ubuntu-24.04-arm
           - target: x86_64-pc-windows-msvc
             os: windows-latest
     runs-on: ${{ matrix.os }}
@@ -43,6 +40,10 @@ jobs:
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: pubspec-language-server
+          # The workspace root is the WASM extension package (no binaries); the
+          # server bin lives in this member, so cargo must be pointed at it or
+          # `--bin` resolves against the root package and finds nothing.
+          manifest_path: server/Cargo.toml
           target: ${{ matrix.target }}
           archive: $bin-$target
           token: ${{ secrets.GITHUB_TOKEN }}
