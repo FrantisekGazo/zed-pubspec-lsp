@@ -4,12 +4,13 @@
 #   pubspec-language-server-<target>.tar.gz  (unix)
 #   pubspec-language-server-<target>.zip     (windows)
 #
-# macOS targets build on native-arch runners (cross-compiling reqwest's
-# rustls/aws-lc-rs C build to a different arch is unreliable). The Linux musl
-# targets build via `cross` on an x86_64 runner — that is cross's designed
-# use case and it handles aarch64-musl in its container; it does NOT run on an
-# arm64 runner. upload-rust-binary-action creates the release on first upload,
-# so there is no separate create-release job.
+# Both macOS targets build on the arm64 macos-14 runner (x86_64 cross-compiles
+# cleanly there via `rustup target add`, and macos-14 capacity is plentiful
+# unlike the scarce Intel macos-13 pool). The Linux musl targets build via
+# `cross` on an x86_64 runner — that is cross's designed use case and it
+# handles aarch64-musl in its container; it does NOT run on an arm64 runner.
+# upload-rust-binary-action creates the release on first upload, so there is no
+# separate create-release job.
 name: Release
 
 on:
@@ -20,6 +21,11 @@ on:
 permissions:
   contents: write
 
+# A re-pushed tag supersedes the previous build; cancel the older run.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   upload-assets:
     strategy:
@@ -29,7 +35,7 @@ jobs:
           - target: aarch64-apple-darwin
             os: macos-14
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-14
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
           - target: aarch64-unknown-linux-musl
