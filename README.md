@@ -16,8 +16,8 @@ A Zed extension that provides language-server support for Flutter/Dart `pubspec.
 
 Two parts, one repo:
 
-1. **The Zed extension** (`src/lib.rs`) — Rust/WASM glue using [`zed_extension_api`](https://docs.rs/zed_extension_api). It registers a custom `Pubspec` language scoped to `pubspec.yaml` / `pubspec_overrides.yaml` via `path_suffixes` (Zed picks the language with the longest matching suffix, so regular YAML files are untouched), and locates or downloads the language server.
-2. **The language server** (`server/`) — a standalone Rust binary (`pubspec-language-server`) built on `tower-lsp-server`, talking to the pub.dev API with in-memory + on-disk caching and silent offline degradation.
+1. **The Zed extension** (`src/lib.rs`) — Rust/WASM glue using [`zed_extension_api`](https://docs.rs/zed_extension_api). It attaches the language server to Zed's built-in `YAML` language and locates or downloads the server binary.
+2. **The language server** (`server/`) — a standalone Rust binary (`pubspec-language-server`) built on `tower-lsp-server`, talking to the pub.dev API with in-memory + on-disk caching and silent offline degradation. Zed hands it every YAML file; it ignores everything except `pubspec.yaml` / `pubspec_overrides.yaml`.
 
 Binary resolution order: `lsp.pubspec-lsp.binary.path` from Zed settings → `pubspec-language-server` on PATH → previously downloaded binary → download from this repo's GitHub releases for the current platform.
 
@@ -32,7 +32,7 @@ cargo test -p pubspec-language-server
 export PATH="$PWD/target/debug:$PATH"
 ```
 
-Then in Zed: command palette → `zed: install dev extension` → select this directory. Open any `pubspec.yaml`; the status bar should show the `Pubspec` language and the `Pubspec LSP` server.
+Then in Zed: command palette → `zed: install dev extension` → select this directory. Open any `pubspec.yaml`; the `Pubspec LSP` server should appear among the language servers for the `YAML` language.
 
 To point Zed at a specific server binary:
 
@@ -68,11 +68,11 @@ Wait for all 5 assets on the release.
 `extensions/pubspec-lsp` submodule at the new tag and bump the `version` under
 `[pubspec-lsp]` in `extensions.toml` (keep it alphabetically sorted), then open a
 PR. No auto-bump bot applies here — `zed-zippy` only runs for repos in the
-`zed-industries`/`zed-extensions` orgs. First PR: zed-industries/extensions#6896.
+`zed-industries`/`zed-extensions` orgs.
 
 ## Notes
 
-- Requires a Zed version with longest-suffix language matching (zed-industries/zed#29716, 2025).
+- No custom language: Zed's extension prerequisites disallow duplicating an existing language (zed-industries/extensions#6896 was closed for registering a YAML-based `Pubspec` language), so the server filters by file name instead.
 - pub.dev etiquette: descriptive `User-Agent`, the name-completion list is cached ≥ 8 h as requested by the API's `cache-control`, package metadata 15 min. Offline = features silently degrade, never errors.
 
 ## References

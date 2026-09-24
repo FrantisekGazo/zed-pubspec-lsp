@@ -15,7 +15,7 @@ use tower_lsp_server::{Client, LanguageServer};
 use crate::actions;
 use crate::completions;
 use crate::diagnostics;
-use crate::document::DocumentStore;
+use crate::document::{is_pubspec_uri, DocumentStore};
 use crate::hover;
 use crate::pubdev::{PubDevClient, PUB_DEV_URL};
 
@@ -111,8 +111,13 @@ impl LanguageServer for Backend {
         Ok(())
     }
 
+    // Non-pubspec documents are never stored, so every request on them
+    // finds no document and returns nothing.
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let doc = params.text_document;
+        if !is_pubspec_uri(doc.uri.as_str()) {
+            return;
+        }
         self.docs
             .upsert(doc.uri.as_str(), doc.text, doc.version)
             .await;
@@ -120,6 +125,9 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        if !is_pubspec_uri(params.text_document.uri.as_str()) {
+            return;
+        }
         // FULL sync: the last change carries the whole document.
         let Some(change) = params.content_changes.into_iter().next_back() else {
             return;

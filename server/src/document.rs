@@ -39,6 +39,13 @@ impl DocumentStore {
     }
 }
 
+/// Whether a document URI names a pubspec. The server is attached to every
+/// YAML file, so everything else is ignored.
+pub fn is_pubspec_uri(uri: &str) -> bool {
+    let file_name = uri.rsplit('/').next().unwrap_or(uri);
+    matches!(file_name, "pubspec.yaml" | "pubspec_overrides.yaml")
+}
+
 /// Convert a marked-yaml marker (1-based line/column, counted in characters)
 /// to an LSP position (0-based line, UTF-16 code-unit column).
 pub fn lsp_position(text: &str, line1: usize, col1: usize) -> Position {
@@ -70,5 +77,22 @@ mod tests {
     #[test]
     fn lsp_position_out_of_bounds_line() {
         assert_eq!(lsp_position("abc", 9, 1), Position::new(8, 0));
+    }
+
+    #[test]
+    fn pubspec_uris_are_accepted() {
+        assert!(is_pubspec_uri("file:///app/pubspec.yaml"));
+        assert!(is_pubspec_uri(
+            "file:///app/packages/core/pubspec_overrides.yaml"
+        ));
+        assert!(is_pubspec_uri("file:///C:/app/pubspec.yaml"));
+    }
+
+    #[test]
+    fn other_yaml_uris_are_rejected() {
+        assert!(!is_pubspec_uri("file:///app/analysis_options.yaml"));
+        assert!(!is_pubspec_uri("file:///app/.github/workflows/ci.yml"));
+        assert!(!is_pubspec_uri("file:///app/my_pubspec.yaml"));
+        assert!(!is_pubspec_uri("file:///app/pubspec.yaml.bak"));
     }
 }

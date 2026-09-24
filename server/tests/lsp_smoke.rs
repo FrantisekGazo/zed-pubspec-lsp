@@ -106,3 +106,55 @@ fn initialize_open_hover_shutdown() {
     let status = lsp.child.wait().expect("wait");
     assert!(status.success());
 }
+
+/// The server is attached to every YAML file, so it must stay silent on
+/// anything that isn't a pubspec. The sort action needs no network, which
+/// makes it a cheap probe of whether the server picked a document up.
+#[test]
+fn ignores_non_pubspec_yaml_files() {
+    let mut lsp = Lsp::spawn();
+
+    lsp.send(json!({
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": { "capabilities": {} }
+    }));
+    lsp.recv_response(1);
+    lsp.send(json!({ "jsonrpc": "2.0", "method": "initialized", "params": {} }));
+
+    let unsorted = "name: demo\ndependencies:\n  zeta: ^1.0.0\n  alpha: ^1.0.0\n";
+    let sort_actions = |lsp: &mut Lsp, id: i64, uri: &str| {
+        lsp.send(json!({
+            "jsonrpc": "2.0", "method": "textDocument/didOpen",
+            "params": { "textDocument": {
+                "uri": uri, "languageId": "yaml", "version": 1, "text": unsorted
+            }}
+        }));
+        lsp.send(json!({
+            "jsonrpc": "2.0", "id": id, "method": "textDocument/codeAction",
+            "params": {
+                "textDocument": { "uri": uri },
+                "range": {
+                    "start": { "line": 2, "character": 2 },
+                    "end": { "line": 2, "character": 2 }
+                },
+                "context": { "diagnostics": [] }
+            }
+        }));
+        lsp.recv_response(id)["result"].clone()
+    };
+
+    // Control: the same text in a pubspec does offer the sort action.
+    let pubspec = sort_actions(&mut lsp, 2, "file:///tmp/app/pubspec.yaml");
+    assert_eq!(
+        pubspec[0]["title"],
+        json!("Sort dependencies alphabetically")
+    );
+
+    let other = sort_actions(&mut lsp, 3, "file:///tmp/app/deps.yaml");
+    assert_eq!(other, Value::Null);
+
+    lsp.send(json!({ "jsonrpc": "2.0", "id": 4, "method": "shutdown" }));
+    lsp.recv_response(4);
+    lsp.send(json!({ "jsonrpc": "2.0", "method": "exit" }));
+    assert!(lsp.child.wait().expect("wait").success());
+}
